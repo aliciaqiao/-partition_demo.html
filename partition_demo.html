@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Two-Pointer Partition Demo</title>
+<style>
+:root{
+  --bg:#0f172a; --panel:#111827; --panel2:#1e293b; --text:#e5e7eb; --muted:#94a3b8;
+  --pivot:#a855f7; --left:#3b82f6; --right:#f97316; --swap:#22c55e; --border:#334155;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:radial-gradient(circle at top,#1e293b,#020617);color:var(--text);}
+.container{max-width:1150px;margin:0 auto;padding:28px 18px 40px;}
+header{text-align:center;margin-bottom:24px}
+h1{font-size:clamp(2rem,5vw,3.5rem);margin:0;background:linear-gradient(90deg,#93c5fd,#c084fc,#fdba74);-webkit-background-clip:text;color:transparent}
+.subtitle{color:var(--muted);font-size:1.05rem;margin-top:10px}
+.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:20px}
+.card{background:linear-gradient(180deg,rgba(30,41,59,.96),rgba(15,23,42,.96));border:1px solid var(--border);border-radius:22px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.array{display:flex;justify-content:center;align-items:flex-end;gap:12px;min-height:190px;margin:18px 0 8px;flex-wrap:wrap}
+.cellWrap{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:64px}
+.cell{width:58px;height:58px;border-radius:16px;background:#334155;border:2px solid #475569;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.35rem;transition:.25s transform,.25s background,.25s border,.25s box-shadow;}
+.cell.pivot{border-color:var(--pivot);box-shadow:0 0 22px rgba(168,85,247,.7)}
+.cell.left{box-shadow:0 0 0 4px rgba(59,130,246,.35)}
+.cell.right{box-shadow:0 0 0 4px rgba(249,115,22,.35)}
+.cell.swap{background:rgba(34,197,94,.55);border-color:var(--swap);transform:translateY(-8px)}
+.index{font-size:.8rem;color:var(--muted)}
+.pointerRow{height:28px;font-weight:800;font-size:.8rem;display:flex;gap:4px;align-items:center;justify-content:center}
+.tag{padding:4px 7px;border-radius:999px;color:white;font-size:.75rem}.tag.left{background:var(--left)}.tag.right{background:var(--right)}.tag.pivot{background:var(--pivot)}
+.legend{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:12px 0}.legend span{display:inline-flex;align-items:center;gap:6px;background:#020617;border:1px solid var(--border);padding:8px 10px;border-radius:999px;color:#cbd5e1}.dot{width:13px;height:13px;border-radius:50%}.pivotDot{background:var(--pivot)}.leftDot{background:var(--left)}.rightDot{background:var(--right)}.swapDot{background:var(--swap)}
+button{border:0;border-radius:14px;padding:12px 16px;font-weight:800;color:white;cursor:pointer;background:#2563eb;box-shadow:0 8px 18px rgba(37,99,235,.25)}button:hover{filter:brightness(1.08)}button.secondary{background:#475569}button.green{background:#16a34a}button.orange{background:#ea580c}.controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+.explain{background:#020617;border:1px solid var(--border);border-radius:16px;padding:16px;line-height:1.55;color:#dbeafe;min-height:116px}.explain strong{color:#fff}.code{background:#020617;border:1px solid var(--border);border-radius:16px;padding:16px;overflow:auto;font-family:Consolas,monospace;color:#d1d5db;font-size:.92rem;line-height:1.45}.hl{background:rgba(250,204,21,.15);display:block;border-left:4px solid #facc15;padding-left:8px;margin-left:-8px}.split{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:16px;flex-wrap:wrap}.box{padding:12px 16px;border-radius:14px;border:1px solid var(--border);background:#020617;font-weight:700}.blueBorder{border-color:var(--left)}.orangeBorder{border-color:var(--right)}
+.note{color:var(--muted);line-height:1.55}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#020617;border:1px solid var(--border);font-family:Consolas,monospace;color:#fef3c7}.result{font-size:1.25rem;text-align:center;font-weight:900;margin-top:12px;color:#bbf7d0}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.cell{width:50px;height:50px}.cellWrap{min-width:54px}}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>Two-Pointer Partition Demo</h1>
+<p class="subtitle">Matches the class version: middle pivot, two pointers, and <span class="pill">return left</span>.</p>
+</header>
+
+<div class="grid">
+<section class="card">
+<h2>Interactive Partition</h2>
+<p class="note">Example list: <span class="pill">[7, 8, 4, 2, 1, 3]</span>. Pivot is chosen by <span class="pill">lst[(left + right) // 2]</span>, so the pivot value is <span class="pill">4</span>.</p>
+<div class="legend">
+<span><i class="dot pivotDot"></i> Pivot</span><span><i class="dot leftDot"></i> Left pointer</span><span><i class="dot rightDot"></i> Right pointer</span><span><i class="dot swapDot"></i> Swapped</span>
+</div>
+<div id="array" class="array"></div>
+<div class="controls">
+<button onclick="nextStep()">Next Step</button>
+<button class="green" onclick="runAuto()">Run Automatically</button>
+<button class="orange" onclick="pauseAuto()">Pause</button>
+<button class="secondary" onclick="resetDemo()">Reset</button>
+</div>
+<p id="result" class="result"></p>
+</section>
+
+<section class="card">
+<h2>What is happening?</h2>
+<div id="explain" class="explain"></div>
+<h3>Class Partition Code</h3>
+<pre class="code" id="codeBox"></pre>
+</section>
+</div>
+
+<section class="card" style="margin-top:20px">
+<h2>Why partitioning helps Quick Sort</h2>
+<p class="note">Partitioning does <strong>not</strong> fully sort the list. It only separates the values into two groups: values smaller than the pivot move towards the left, and values larger than the pivot move towards the right.</p>
+<div class="split">
+<div class="box blueBorder">Left partition<br><span class="pill">quickSort(lst, start, index - 1)</span></div>
+<div class="box">Returned index<br><span class="pill">index = left</span></div>
+<div class="box orangeBorder">Right partition<br><span class="pill">quickSort(lst, index, end)</span></div>
+</div>
+<p class="note" style="margin-top:14px">In this version, <span class="pill">return left</span> gives the first index of the right partition after the pointers cross. It is not necessarily the final position of the pivot value.</p>
+</section>
+</div>
+
+<script>
+const original = [7,8,4,2,1,3];
+let lst, left, right, startLeft, startRight, pivotIndex, pivot, phase, finished, swapped, timer;
+const codeLines = [
+"def partitionSort(lst, left, right):",
+"    pivot = lst[(left + right) // 2]",
+"",
+"    while left <= right:",
+"        while left <= right and lst[left] < pivot:",
+"            left += 1",
+"",
+"        while left <= right and lst[right] > pivot:",
+"            right -= 1",
+"",
+"        if left <= right:",
+"            lst[left], lst[right] = lst[right], lst[left]",
+"            left += 1",
+"            right -= 1",
+"",
+"    return left"
+];
+function showCode(hl=-1){
+ document.getElementById('codeBox').innerHTML = codeLines.map((line,i)=>`<span class="${i===hl?'hl':''}">${line.replaceAll('<','&lt;')}</span>`).join('\n');
+}
+function resetDemo(){
+ lst=[...original]; left=0; right=lst.length-1; startLeft=0; startRight=lst.length-1; pivotIndex=Math.floor((left+right)/2); pivot=lst[pivotIndex]; phase='start'; finished=false; swapped=[]; pauseAuto(); document.getElementById('result').textContent=''; render(); explain(`We begin with left = 0 and right = ${right}. The pivot is the middle element: lst[(0 + ${right}) // 2] = ${pivot}.`,1);
+}
+function render(){
+ const arr=document.getElementById('array'); arr.innerHTML='';
+ lst.forEach((val,idx)=>{
+  const wrap=document.createElement('div'); wrap.className='cellWrap';
+  const pointer=document.createElement('div'); pointer.className='pointerRow';
+  if(idx===left && !finished) pointer.innerHTML += '<span class="tag left">left</span>';
+  if(idx===right && !finished) pointer.innerHTML += '<span class="tag right">right</span>';
+  if(idx===pivotIndex) pointer.innerHTML += '<span class="tag pivot">pivot</span>';
+  const cell=document.createElement('div'); cell.className='cell'; cell.textContent=val;
+  if(idx===pivotIndex) cell.classList.add('pivot');
+  if(idx===left && !finished) cell.classList.add('left');
+  if(idx===right && !finished) cell.classList.add('right');
+  if(swapped.includes(idx)) cell.classList.add('swap');
+  const ind=document.createElement('div'); ind.className='index'; ind.textContent='index '+idx;
+  wrap.appendChild(pointer); wrap.appendChild(cell); wrap.appendChild(ind); arr.appendChild(wrap);
+ });
+}
+function explain(txt, hl=-1){document.getElementById('explain').innerHTML=txt; showCode(hl);}
+function nextStep(){
+ if(finished) return;
+ swapped=[];
+ if(phase==='start') phase='moveLeft';
+ if(phase==='moveLeft'){
+  if(left<=right && lst[left] < pivot){
+    explain(`<strong>Move left pointer right.</strong><br>lst[left] = ${lst[left]} is smaller than pivot ${pivot}, so it already belongs on the left side.`,5); left++; render(); return;
+  }
+  explain(`<strong>Left pointer stops.</strong><br>It found ${left<=right?lst[left]:'no value'} which is not smaller than pivot ${pivot}.`,4); phase='moveRight'; render(); return;
+ }
+ if(phase==='moveRight'){
+  if(left<=right && lst[right] > pivot){
+    explain(`<strong>Move right pointer left.</strong><br>lst[right] = ${lst[right]} is greater than pivot ${pivot}, so it already belongs on the right side.`,8); right--; render(); return;
+  }
+  explain(`<strong>Right pointer stops.</strong><br>It found ${left<=right?lst[right]:'no value'} which is not greater than pivot ${pivot}.`,7); phase='swap'; render(); return;
+ }
+ if(phase==='swap'){
+  if(left<=right){
+    const a=left,b=right; [lst[left],lst[right]]=[lst[right],lst[left]]; swapped=[a,b];
+    explain(`<strong>Swap.</strong><br>The left pointer and right pointer have stopped, so these two values are on the wrong sides or equal to the pivot. Swap them, then move both pointers inward.`,11);
+    left++; right--; phase='moveLeft'; render(); return;
+  }else{
+    finished=true; render();
+    document.getElementById('result').textContent=`Partition finished. return left = ${left}`;
+    explain(`<strong>Pointers crossed.</strong><br>Now left (${left}) is greater than right (${right}), so the loop stops. This partition version returns <span class="pill">left</span>, which is the first index of the right partition.`,15);
+    return;
+  }
+ }
+}
+function runAuto(){pauseAuto(); timer=setInterval(()=>{ if(finished){pauseAuto();return;} nextStep(); },1100)}
+function pauseAuto(){ if(timer) clearInterval(timer); timer=null; }
+resetDemo();
+</script>
+</body>
+</html>
